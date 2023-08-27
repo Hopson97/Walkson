@@ -5,8 +5,8 @@
 #include <cmath>
 #include <iostream>
 
-#include "Map.h"
 #include "Entity.h"
+#include "Map.h"
 #include "MapPreviewRenderer.h"
 #include "Maths.h"
 
@@ -16,7 +16,7 @@ int main()
     window.setVerticalSyncEnabled(true);
 
     Entity player;
-    player.position = {2.5f, 2.5f};
+    player.position = {MAP_X_SIZE / 2, MAP_Y_SIZE / 2};
 
     Map map;
     PreviewRender preview_renderer(map);

@@ -12,9 +12,6 @@ struct Entity;
 
 struct PreviewRender
 {
-    constexpr static int PREVIEW_SCALE = 8;
-    constexpr static float PREVIEW_TILE_SIZE = TILE_SIZE / PREVIEW_SCALE;
-
     std::array<sf::Vertex, 2> m_line;
     sf::RectangleShape m_quad;
 
@@ -24,4 +21,8 @@ struct PreviewRender
 
     void render_preview(sf::RenderTarget& render_target,
                         const Entity& camera);
+
+    void set_line_colour(sf::Color colour);
+    void render_camera_line(sf::RenderTarget& render_target, const sf::Vector2f& start,
+                            float angle, float size);
 };

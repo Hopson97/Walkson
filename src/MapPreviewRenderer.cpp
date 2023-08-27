@@ -6,8 +6,11 @@
 #include "Map.h"
 #include "Maths.h"
 
-sf::Color WALL = {126, 126, 126, 50};
-sf::Color FLOOR = {255, 150, 150, 50};
+constexpr int PREVIEW_SCALE = 6;
+constexpr float PREVIEW_TILE_SIZE = TILE_SIZE / PREVIEW_SCALE;
+
+const sf::Color WALL = {100, 200, 250, 128};
+const sf::Color FLOOR = {50, 50, 50, 128};
 
 PreviewRender::PreviewRender(const Map& map)
     : mp_map(&map)
@@ -15,11 +18,6 @@ PreviewRender::PreviewRender(const Map& map)
     m_quad.setSize({PREVIEW_TILE_SIZE, PREVIEW_TILE_SIZE});
     m_quad.setOutlineColor({0, 0, 0, 50});
     m_quad.setOutlineThickness(1.0f);
-
-    for (auto& v : m_line)
-    {
-        v.color = sf::Color::Red;
-    }
 }
 
 void PreviewRender::render_preview(sf::RenderTarget& render_target, const Entity& camera)
@@ -46,19 +44,42 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Entity
                 default:
                     m_quad.setFillColor(sf::Color::Magenta);
             }
-
             render_target.draw(m_quad);
 
-            m_line[0].position = {camera.position.x * PREVIEW_TILE_SIZE,
-                                  camera.position.y * PREVIEW_TILE_SIZE};
-
-            float delta_x = std::sin(rads(camera.direction)) * PREVIEW_TILE_SIZE;
-            float delta_y = std::cos(rads(camera.direction)) * PREVIEW_TILE_SIZE;
-
-            m_line[1].position = {camera.position.x * PREVIEW_TILE_SIZE + delta_x,
-                                  camera.position.y * PREVIEW_TILE_SIZE + delta_y};
-
-            render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
         }
     }
+
+    // Draw the player "forward" line
+    set_line_colour(sf::Color::Red);
+    render_camera_line(render_target, camera.position, camera.direction, 1.0);
+
+    // Draw the player "Field of Vision" lines
+    set_line_colour({255,255,255,50});
+    float left = clamp_angle(camera.direction - FIELD_OF_VIEW / 2);
+    float right = clamp_angle(camera.direction + FIELD_OF_VIEW / 2);
+    render_camera_line(render_target, camera.position, left, 2);
+    render_camera_line(render_target, camera.position, right, 2);
+
+}
+
+void PreviewRender::set_line_colour(sf::Color colour)
+{
+    for (auto& v : m_line)
+    {
+        v.color = colour;
+    }
+}
+
+void PreviewRender::render_camera_line(sf::RenderTarget& render_target,
+                                       const sf::Vector2f& start, float angle, float size)
+{
+    float delta_x = std::sin(rads(angle)) * PREVIEW_TILE_SIZE;
+    float delta_y = std::cos(rads(angle)) * PREVIEW_TILE_SIZE;
+
+    m_line[0].position = {start.x * PREVIEW_TILE_SIZE,
+                          start.y * PREVIEW_TILE_SIZE};
+
+    m_line[1].position = {start.x * PREVIEW_TILE_SIZE + delta_x * size,
+                          start.y * PREVIEW_TILE_SIZE + delta_y * size};
+    render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
 }
