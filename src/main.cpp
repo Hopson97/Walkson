@@ -255,14 +255,32 @@ int main()
                 // Wall
                 if (hit_wall)
                 {
+                    auto tile = map.get_tile(pos.x, pos.y);
+                    auto colour = tile_to_colour(tile);
+
+                    if (side == 1)
+                    {
+                        colour.r /= 2;
+                        colour.g /= 2;
+                        colour.b /= 2;
+                    }
 
                     for (int y = start; y < end; y++)
                     {
-                        sf::Uint8 r = rand() % 255;
-                        sf::Uint8 g = rand() % 255;
-                        sf::Uint8 b = rand() % 255;
-                        renderer.setPixel(x, y,
-                                          tile_to_colour(map.get_tile(pos.x, pos.y)));
+                        renderer.setPixel(x, y, colour);
+                    }
+                    if (tile == '@')
+                    {
+
+                        start = end;
+                        end = WINDOW_HEIGHT / 2 + wall_height;
+                        colour.r /= 2;
+                        colour.g /= 2;
+                        colour.b /= 2;
+                        for (int y = start; y < end; y++)
+                        {
+                            renderer.setPixel(x, y, colour);
+                        }
                     }
                 }
             }
