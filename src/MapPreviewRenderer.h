@@ -8,7 +8,7 @@
 #include "Constants.h"
 
 struct Map;
-struct Entity;
+struct Camera;
 
 struct PreviewRender
 {
@@ -19,10 +19,7 @@ struct PreviewRender
 
     PreviewRender(const Map& map);
 
-    void render_preview(sf::RenderTarget& render_target,
-                        const Entity& camera);
+    void render_preview(sf::RenderTarget& render_target, const Camera& camera);
 
     void set_line_colour(sf::Color colour);
-    void render_camera_line(sf::RenderTarget& render_target, const sf::Vector2f& start,
-                            float angle, float size);
 };

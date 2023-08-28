@@ -5,5 +5,10 @@
 struct Entity
 {
     sf::Vector2f position;
-    float direction = 0;
+    sf::Vector2f direction;
+};
+
+struct Camera : public Entity
+{
+    sf::Vector2f plane;
 };

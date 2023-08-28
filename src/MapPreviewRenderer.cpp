@@ -20,7 +20,7 @@ PreviewRender::PreviewRender(const Map& map)
     m_quad.setOutlineThickness(1.0f);
 }
 
-void PreviewRender::render_preview(sf::RenderTarget& render_target, const Entity& camera)
+void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera& camera)
 {
     assert(mp_map);
 
@@ -45,21 +45,39 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Entity
                     m_quad.setFillColor(sf::Color::Magenta);
             }
             render_target.draw(m_quad);
-
         }
     }
 
     // Draw the player "forward" line
+
+    // render_camera_line(render_target, camera.position, camera.direction, 1.0);
+
+    auto& pos = camera.position;
+    auto& dir = camera.direction;
+    auto& plane = camera.plane;
     set_line_colour(sf::Color::Red);
-    render_camera_line(render_target, camera.position, camera.direction, 1.0);
+    {
 
-    // Draw the player "Field of Vision" lines
-    set_line_colour({255,255,255,50});
-    float left = clamp_angle(camera.direction - FIELD_OF_VIEW / 2);
-    float right = clamp_angle(camera.direction + FIELD_OF_VIEW / 2);
-    render_camera_line(render_target, camera.position, left, 2);
-    render_camera_line(render_target, camera.position, right, 2);
+        m_line[0].position = {pos.x * PREVIEW_TILE_SIZE, pos.y * PREVIEW_TILE_SIZE};
 
+        m_line[1].position = {(pos.x * PREVIEW_TILE_SIZE) + dir.x * 10,
+                              (pos.y * PREVIEW_TILE_SIZE) + dir.y * 10};
+        render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
+    }
+       
+    // Draw FOV lines
+    set_line_colour(sf::Color::Blue);
+    {
+        m_line[1].position = {(pos.x * PREVIEW_TILE_SIZE) + (dir.x - plane.x) * 10,
+                              (pos.y * PREVIEW_TILE_SIZE) + (dir.y - plane.y) * 10};
+        render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
+    }
+
+    {
+        m_line[1].position = {(pos.x * PREVIEW_TILE_SIZE) + (dir.x + plane.x) * 10,
+                              (pos.y * PREVIEW_TILE_SIZE) + (dir.y + plane.y) * 10};
+        render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
+    }
 }
 
 void PreviewRender::set_line_colour(sf::Color colour)
@@ -68,18 +86,4 @@ void PreviewRender::set_line_colour(sf::Color colour)
     {
         v.color = colour;
     }
-}
-
-void PreviewRender::render_camera_line(sf::RenderTarget& render_target,
-                                       const sf::Vector2f& start, float angle, float size)
-{
-    float delta_x = std::sin(rads(angle)) * PREVIEW_TILE_SIZE;
-    float delta_y = std::cos(rads(angle)) * PREVIEW_TILE_SIZE;
-
-    m_line[0].position = {start.x * PREVIEW_TILE_SIZE,
-                          start.y * PREVIEW_TILE_SIZE};
-
-    m_line[1].position = {start.x * PREVIEW_TILE_SIZE + delta_x * size,
-                          start.y * PREVIEW_TILE_SIZE + delta_y * size};
-    render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
 }
