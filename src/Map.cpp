@@ -1,18 +1,45 @@
 #include "Map.h"
 
-Map::Map()
+#include <fstream>
+#include <string>
+
+
+bool Map::load(const char* path)
 {
-    m_grid.fill(0);
+    m_grid.clear();
+    start = {0, 0};
+    size = {0, 0};
 
-    for (int y = 0; y < MAP_Y_SIZE; y++)
+    std::ifstream f;
+
+    f.open(path);
+    if (!f.is_open())
     {
-        m_grid.at(index(0, y)) = 1;
-        m_grid.at(index(MAP_X_SIZE - 1, y)) = 1;
+        return false;
     }
 
-    for (int x = 0; x < MAP_X_SIZE; x++)
+    std::string line;
+    while (std::getline(f, line))
     {
-        m_grid.at(index(x, 0)) = 1;
-        m_grid.at(index(x, MAP_Y_SIZE - 1)) = 1;
+        size.x = line.length();
+        size.y++;
+           
+        int x = 0;
+        for (auto c : line)
+        {
+            x += 1;
+
+            if (c == 'S' || c == 's')
+            {
+                start = {x, size.y};
+                m_grid.push_back('.');
+            }
+            else
+            {
+                m_grid.push_back(c);
+            }
+        }
     }
+
+    return true;
 }

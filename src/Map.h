@@ -1,24 +1,31 @@
 #pragma once
 
-#include <array>
+#include <vector>
+
+#include <SFML/System/Vector2.hpp>
+
 #include "Constants.h"
 
 struct Map
 {
-    std::array<Tile, MAP_X_SIZE * MAP_Y_SIZE> m_grid;
+    std::vector<Tile> m_grid;
+    sf::Vector2i size;
+    sf::Vector2i start;
 
-    Map();
+
+
+    bool load(const char* path);
 
     unsigned index(int x, int y) const
     {
-        return y * MAP_X_SIZE + x;
+        return y * size.x + x;
     }
 
     Tile get_tile(int x, int y) const
     {
-        if (x < 0 || x >= MAP_X_SIZE || y < 0 || y >= MAP_Y_SIZE)
+        if (x < 0 || x >= size.x || y < 0 || y >= size.y)
         {
-            return 0;
+            return '.';
         }
 
         return m_grid.at(index(x, y));

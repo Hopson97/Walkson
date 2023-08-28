@@ -7,10 +7,7 @@
 #include "Maths.h"
 
 constexpr int PREVIEW_SCALE = 6;
-constexpr float PREVIEW_TILE_SIZE = TILE_SIZE / PREVIEW_SCALE;
-
-const sf::Color WALL = {100, 200, 250, 128};
-const sf::Color FLOOR = {50, 50, 50, 128};
+constexpr float PREVIEW_TILE_SIZE = 4;
 
 PreviewRender::PreviewRender(const Map& map)
     : mp_map(&map)
@@ -24,26 +21,13 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera
 {
     assert(mp_map);
 
-    for (int y = 0; y < MAP_Y_SIZE; y++)
+    for (int y = 0; y < mp_map->size.y; y++)
     {
-        for (int x = 0; x < MAP_X_SIZE; x++)
+        for (int x = 0; x < mp_map->size.x; x++)
         {
             m_quad.setPosition(x * PREVIEW_TILE_SIZE, y * PREVIEW_TILE_SIZE);
 
-            auto tile = mp_map->get_tile(x, y);
-            switch (tile)
-            {
-                case 0:
-                    m_quad.setFillColor(FLOOR);
-                    break;
-
-                case 1:
-                    m_quad.setFillColor(WALL);
-                    break;
-
-                default:
-                    m_quad.setFillColor(sf::Color::Magenta);
-            }
+            m_quad.setFillColor(tile_to_colour(mp_map->get_tile(x, y)));
             render_target.draw(m_quad);
         }
     }
