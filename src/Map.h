@@ -16,6 +16,11 @@ struct Map
 
     Tile get_tile(int x, int y) const
     {
+        if (x < 0 || x >= MAP_X_SIZE || y < 0 || y >= MAP_Y_SIZE)
+        {
+            return 0;
+        }
+
         return m_grid.at(index(x, y));
     }
 };
