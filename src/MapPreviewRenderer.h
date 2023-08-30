@@ -13,7 +13,7 @@ struct Camera;
 struct PreviewRender
 {
     std::array<sf::Vertex, 2> m_line;
-    sf::RectangleShape m_quad;
+    std::vector<sf::Vertex> m_tiles;
 
     const Map* mp_map = nullptr;
 

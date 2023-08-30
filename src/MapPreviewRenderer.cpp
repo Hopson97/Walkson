@@ -12,30 +12,34 @@ constexpr float PREVIEW_TILE_SIZE = 4;
 PreviewRender::PreviewRender(const Map& map)
     : mp_map(&map)
 {
-    m_quad.setSize({PREVIEW_TILE_SIZE, PREVIEW_TILE_SIZE});
-    m_quad.setOutlineColor({0, 0, 0, 50});
-    m_quad.setOutlineThickness(1.0f);
+    auto T_SIZE = PREVIEW_TILE_SIZE;
+    for (int y = 0; y < mp_map->size.y; y++)
+    {
+        for (int x = 0; x < mp_map->size.x; x++)
+        {
+            sf::Vertex quad[4];
+            quad[0].position = {x * T_SIZE, y * T_SIZE};
+            quad[1].position = {x * T_SIZE, y * T_SIZE + T_SIZE};
+            quad[2].position = {x * T_SIZE + T_SIZE, y * T_SIZE + T_SIZE};
+            quad[3].position = {x * T_SIZE + T_SIZE, y * T_SIZE};
+
+            for (int i = 0; i < 4; i++)
+            {
+                quad[i].color = tile_to_colour(mp_map->get_tile(x, y));
+                m_tiles.push_back(quad[i]);
+            }
+        }
+    }
 }
 
 void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera& camera)
 {
     assert(mp_map);
 
-    for (int y = 0; y < mp_map->size.y; y++)
-    {
-        for (int x = 0; x < mp_map->size.x; x++)
-        {
-            m_quad.setPosition(x * PREVIEW_TILE_SIZE, y * PREVIEW_TILE_SIZE);
-
-            m_quad.setFillColor(tile_to_colour(mp_map->get_tile(x, y)));
-            render_target.draw(m_quad);
-        }
-    }
+    // Draw the tile map
+    render_target.draw(m_tiles.data(), m_tiles.size(), sf::PrimitiveType::Quads);
 
     // Draw the player "forward" line
-
-    // render_camera_line(render_target, camera.position, camera.direction, 1.0);
-
     auto& pos = camera.position;
     auto& dir = camera.direction;
     auto& plane = camera.plane;
@@ -62,6 +66,8 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera
                               (pos.y * PREVIEW_TILE_SIZE) + (dir.y + plane.y) * 10};
         render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
     }
+
+
 }
 
 void PreviewRender::set_line_colour(sf::Color colour)
