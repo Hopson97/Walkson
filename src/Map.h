@@ -12,8 +12,6 @@ struct Map
     sf::Vector2i size;
     sf::Vector2i start;
 
-
-
     bool load(const char* path);
 
     unsigned index(int x, int y) const
