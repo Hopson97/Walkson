@@ -34,7 +34,7 @@ struct Renderer
         std::memset(pixels.data(), 0, pixels.size());
     }
 
-    void setPixel(int x, int y, sf::Color colour)
+    void set_pixel(int x, int y, sf::Color colour)
     {
         if (x < 0 || x >= WINDOW_WIDTH || y < 0 || y >= WINDOW_HEIGHT)
         {
@@ -45,6 +45,14 @@ struct Renderer
         ptr[1] = colour.g;
         ptr[2] = colour.b;
         ptr[3] = 255;
+    }
+
+    void draw_vertical_line(int x, int y_start, int y_end, sf::Color colour)
+    {
+        for (int y = y_start; y < y_end; y++)
+        {
+            set_pixel(x, y, colour);
+        }
     }
 
     void render(sf::RenderTarget& target, bool inside)
@@ -72,6 +80,14 @@ struct Renderer
         clear_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT / 2});
     }
 };
+
+sf::Color operator/=(sf::Color& colour, int mod)
+{
+    colour.r /= mod;
+    colour.g /= mod;
+    colour.b /= mod;
+    return colour;
+}
 
 auto gen_texture()
 {
@@ -166,10 +182,20 @@ int main()
 
         auto next = camera.position + movement;
         auto next_tile = map.get_tile(next.x, next.y);
-        if (next_tile != '#')
+
+        // Naive collision resolution
+        if (next_tile == '#')
         {
-            camera.position = next;
+            if (std::abs(movement.x) > 0)
+            {
+                movement.x = 0;
+            }
+            if (std::abs(movement.y) > 0)
+            {
+                movement.y = 0;
+            }
         }
+        camera.position += movement;
 
         // If the player is touching a "door", then warp them to other side
         auto i_camera_pos = Maths::cast_vector<int>(camera.position);
@@ -271,30 +297,18 @@ int main()
 
                 auto tile = map.get_tile(pos.x, pos.y);
                 auto colour = tile_to_colour(tile);
-
                 if (side == 1)
                 {
-                    colour.r /= 2;
-                    colour.g /= 2;
-                    colour.b /= 2;
+                    colour /= 2;
                 }
+                renderer.draw_vertical_line(x, start, end, colour);
 
-                for (int y = start; y < end; y++)
-                {
-                    renderer.setPixel(x, y, colour);
-                }
                 if (tile == '@')
                 {
-
                     start = end;
                     end = WINDOW_HEIGHT / 2 + wall_height;
-                    colour.r /= 2;
-                    colour.g /= 2;
-                    colour.b /= 2;
-                    for (int y = start; y < end; y++)
-                    {
-                        renderer.setPixel(x, y, colour);
-                    }
+                    colour /= 2;
+                    renderer.draw_vertical_line(x, start, end, colour);
                 }
             }
         }
