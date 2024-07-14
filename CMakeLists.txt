@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.10)
+
+#Set up project
+project(enet-example VERSION 1.0)
+
+include(${CMAKE_BINARY_DIR}/../conanbuildinfo.cmake)
+conan_basic_setup()
+
+
+#Set executable
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    src/Map.cpp
+    src/MapPreviewRenderer.cpp
+    src/Renderer.cpp
+)
+
+#Set C++17
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+
+#Set flags
+if(MSVC)
+  	target_compile_options(${PROJECT_NAME} PRIVATE 
+    	/W4 /WX)
+else()
+  	target_compile_options(${PROJECT_NAME} PRIVATE 
+		-Wall -Wextra -pedantic)
+endif()
+
+#Finally
+target_link_libraries(${PROJECT_NAME} 
+    ${CONAN_LIBS}
+)
+
