@@ -25,7 +25,7 @@ PreviewRender::PreviewRender(const Map& map)
 
             for (int i = 0; i < 4; i++)
             {
-                quad[i].color = tile_to_colour(mp_map->get_tile(x, y));
+                quad[i].color = get_tile_info(mp_map->get_tile(x, y)).colour;
                 m_tiles.push_back(quad[i]);
             }
         }

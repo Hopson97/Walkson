@@ -11,24 +11,43 @@ constexpr int TILE_SIZE = 64;
 constexpr int WINDOW_WIDTH = 400;
 constexpr int WINDOW_HEIGHT = 222;
 
+struct Tile
+{
+    sf::Color colour;
+    float height = 0;
+};
 
-using Tile = char;
+const Tile WALL = {.colour = {100, 100, 100, 128}, .height = 1.0f};
+const Tile DOOR = {
+    .colour = {255, 165, 0, 128}, .height = 0.9f};
 
-const sf::Color WALL = {100, 100, 100, 128};
-const sf::Color GRASS = {50, 50, 50, 128};
-const sf::Color FLOOR = {200, 150, 150, 128};
+const Tile GRASS = {.colour = {50, 50, 50, 128}, .height = 1.0f};
+const Tile FLOOR = {.colour = {200, 150, 150, 128}, .height = 1.0f};
 
-inline sf::Color tile_to_colour(Tile t)
+const Tile CASTLE_A = {.colour = {150, 150, 150, 128}, .height = 2.0f};
+const Tile CASTLE_B = {.colour = {200, 200, 200, 128}, .height = 2.0f};
+
+inline const Tile& get_tile_info(char t)
 {
     switch (t)
     {
+        case '#':
+            return WALL;
+
+        case '1':
+            return DOOR;
+
         case '.':
             return GRASS;
         case ',':
             return FLOOR;
-        case '#':
-            return WALL;
+
+        case 'A':
+            return CASTLE_A;
+
+        case 'B':
+            return CASTLE_B;
     }
 
-    return sf::Color::Magenta;
+    return {sf::Color::Magenta, 1.0f};
 }

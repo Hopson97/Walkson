@@ -42,7 +42,7 @@ void Renderer::render(sf::RenderTarget& target, bool inside)
 {
     float middle = WINDOW_HEIGHT / 2.0f;
 
-    sf::Color ground = inside ? FLOOR : sf::Color{100, 200, 80};
+    sf::Color ground = inside ? FLOOR.colour : sf::Color{100, 200, 80};
     sf::Color sky = inside ? sf::Color{200, 200, 180} : sf::Color{50, 150, 230};
 
     // Draw the "sky"

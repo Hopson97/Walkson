@@ -23,7 +23,6 @@ namespace
         return colour;
     }
 
-
     sf::Vector2f get_keyboard_input(const sf::Vector2f& direction)
     {
         float SPEED = 0.1f;
@@ -49,7 +48,8 @@ namespace
         return movement;
     }
 
-    void do_raycast(int x, const Camera& camera, const sf::Vector2i& i_camera_pos, const Map& map, Renderer& renderer)
+    void do_raycast(int x, const Camera& camera, const sf::Vector2i& i_camera_pos,
+                    const Map& map, Renderer& renderer)
     {
         // Convert to device coords (so -1 left & bottom, and 1 top && right
         float camera_x = 2 * x / (float)WINDOW_WIDTH - 1;
@@ -113,10 +113,14 @@ namespace
         float distance_to_wall =
             side == 0 ? side_dist.x - delta_dist.x : side_dist.y - delta_dist.y;
 
+        // Get info about the "hit" tile
+        auto tile = map.get_tile(pos.x, pos.y);
+        auto tile_info = get_tile_info(tile);
+
         // Calculate the height of the wall as a ratio of distance to window height
         int wall_height = WINDOW_HEIGHT / distance_to_wall;
         int start = WINDOW_HEIGHT / 2 - wall_height / 2;
-        int end = WINDOW_HEIGHT / 2 + wall_height / 2;
+        int end = WINDOW_HEIGHT / 2 + (wall_height / 2 * tile_info.height);
         if (start < 0)
             start = 0;
         if (end >= WINDOW_HEIGHT)
@@ -126,12 +130,10 @@ namespace
         // Wall
         if (hit_wall)
         {
-
-            auto tile = map.get_tile(pos.x, pos.y);
-            auto colour = tile_to_colour(tile);
-            colour.r = std::max(0, (int)colour.r - (int)distance_to_wall * 2);
-            colour.g = std::max(0, (int)colour.g - (int)distance_to_wall * 2);
-            colour.b = std::max(0, (int)colour.b - (int)distance_to_wall * 2);
+            auto colour = tile_info.colour;
+            colour.r = std::max(0, (int)colour.r - (int)distance_to_wall * 5);
+            colour.g = std::max(0, (int)colour.g - (int)distance_to_wall * 5);
+            colour.b = std::max(0, (int)colour.b - (int)distance_to_wall * 5);
             if (side == 1)
             {
                 colour /= 2;
@@ -147,27 +149,32 @@ namespace
             }
         }
     }
-}
+} // namespace
 
+enum class RenderStyle
+{
+    Normal,
+    PerLine,
+};
 
 int main()
 {
-    sf::RenderWindow window({WINDOW_WIDTH * 3, WINDOW_HEIGHT * 3}, "Walkson - Press L to unlock mouse - Press ESC to exit",
+    sf::RenderWindow window({WINDOW_WIDTH * 3, WINDOW_HEIGHT * 3},
+                            "Walkson - Press L to unlock mouse - Press ESC to exit",
                             sf::Style::Default);
     window.setVerticalSyncEnabled(true);
     window.setMouseCursorVisible(false);
 
     window.setPosition({1960 - (int)(window.getSize().x * 1.1), 0});
 
-    sf::RenderTexture renderTexture;
-    renderTexture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
+    sf::RenderTexture render_texture;
+    render_texture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     sf::RectangleShape framebuffer({
         (float)window.getSize().x,
         (float)window.getSize().y,
     });
     // sf::RectangleShape framebuffer({WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2});
-
 
     Map map;
     map.load("data/map");
@@ -178,6 +185,16 @@ int main()
     Camera camera;
     camera.position = Maths::cast_vector<float>(map.start);
     camera.direction = {1, 0};
+
+    RenderStyle render_style = RenderStyle::Normal;
+    int current_x = 0;
+
+    auto clear_all = [&]()
+    {
+        window.clear();
+        render_texture.clear();
+        renderer.clear();
+    };
 
     // The plane is perpendicular to the camera's direction vector
     camera.plane = Maths::perpendicular(camera.direction);
@@ -205,66 +222,91 @@ int main()
                 {
                     mouse_enabled = !mouse_enabled;
                 }
+
+                else if (key == sf::Keyboard::Q)
+                {
+                    clear_all();
+                    render_style = RenderStyle::PerLine;
+                    current_x = 0;
+                }
             }
         }
 
-        //  ---------------------
-        //      Keyboard input
-        //  ---------------------
-        auto movement = get_keyboard_input(camera.direction);
-        auto next = camera.position + movement;
-        auto next_tile = map.get_tile(next.x, next.y);
 
-        // Naive collision resolution
-        if (next_tile == '#')
+        // Enabling input when rendering per-line can cause issues
+        if (render_style == RenderStyle::Normal)
         {
-            if (std::abs(movement.x) > 0)
+            //  ---------------------
+            //      Keyboard input
+            //  ---------------------
+            auto movement = get_keyboard_input(camera.direction);
+            auto next = camera.position + movement;
+            auto next_tile = map.get_tile(next.x, next.y);
+
+            // Naive collision resolution
+            if (next_tile == '#')
             {
-                movement.x = 0;
+                if (std::abs(movement.x) > 0)
+                {
+                    movement.x = 0;
+                }
+                if (std::abs(movement.y) > 0)
+                {
+                    movement.y = 0;
+                }
             }
-            if (std::abs(movement.y) > 0)
+            camera.position += movement;
+
+            //  ---------------------
+            //      Mouse input
+            //  ---------------------
+            if (mouse_enabled)
             {
-                movement.y = 0;
+
+                static auto last_mouse_pos = sf::Mouse::getPosition().x;
+                auto this_frame_mouse_pos = sf::Mouse::getPosition().x;
+
+                float diff = (this_frame_mouse_pos - last_mouse_pos) / 4.0f;
+                camera.direction = Maths::rotate(camera.direction, diff);
+                camera.plane = Maths::perpendicular(-camera.direction);
+                sf::Mouse::setPosition(
+                    {(int)window.getSize().x / 2, (int)window.getSize().y / 2}, window);
+                last_mouse_pos = sf::Mouse::getPosition().x;
             }
-        }
-        camera.position += movement;
-
-        //  ---------------------
-        //      Mouse input
-        //  ---------------------
-        if (mouse_enabled)
-        {
-
-            static auto last_mouse_pos = sf::Mouse::getPosition().x;
-            auto this_frame_mouse_pos = sf::Mouse::getPosition().x;
-
-            float diff = (this_frame_mouse_pos - last_mouse_pos) / 4.0f;
-            camera.direction = Maths::rotate(camera.direction, diff);
-            camera.plane = Maths::perpendicular(-camera.direction);
-            sf::Mouse::setPosition(
-                {(int)window.getSize().x / 2, (int)window.getSize().y / 2}, window);
-            last_mouse_pos = sf::Mouse::getPosition().x;
         }
 
         //  ---------------------
         //      Pre-Render
         //  ---------------------
-        window.clear();
-        renderTexture.clear();
-        renderer.clear();
+        if (render_style == RenderStyle::Normal)
+        {
+            clear_all();
+        }
 
         //  ---------------------
         //      Rendering
         //  ---------------------
         auto i_camera_pos = Maths::cast_vector<int>(camera.position);
         auto tile = map.get_tile(i_camera_pos.x, i_camera_pos.y);
-        for (int x = 0; x < WINDOW_WIDTH; x++)
+
+        if (render_style == RenderStyle::Normal)
         {
-            do_raycast(x, camera, i_camera_pos, map, renderer);
+            for (int x = 0; x < WINDOW_WIDTH; x++)
+            {
+                do_raycast(x, camera, i_camera_pos, map, renderer);
+            }
+        }
+        else if (render_style == RenderStyle::PerLine)
+        {
+            do_raycast(current_x++, camera, i_camera_pos, map, renderer);
+            if (current_x == WINDOW_WIDTH - 1)
+            {
+                render_style = RenderStyle::Normal;
+            }
         }
 
-        renderer.render(renderTexture, tile == ',');
-        framebuffer.setTexture(&renderTexture.getTexture());
+        renderer.render(render_texture, tile == ',');
+        framebuffer.setTexture(&render_texture.getTexture());
         window.draw(framebuffer);
 
         preview_renderer.render_preview(window, camera);
@@ -272,4 +314,3 @@ int main()
         window.display();
     }
 }
-

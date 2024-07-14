@@ -8,7 +8,7 @@
 
 struct Map
 {
-    std::vector<Tile> m_grid;
+    std::vector<char> m_grid;
     sf::Vector2i size;
     sf::Vector2i start;
     sf::Vector2i testing_location;
@@ -20,7 +20,7 @@ struct Map
         return y * size.x + x;
     }
 
-    Tile get_tile(int x, int y) const
+    char get_tile(int x, int y) const
     {
         if (x < 0 || x >= size.x || y < 0 || y >= size.y)
         {
