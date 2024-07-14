@@ -174,10 +174,9 @@ int main()
         (float)window.getSize().x,
         (float)window.getSize().y,
     });
-    // sf::RectangleShape framebuffer({WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2});
 
     Map map;
-    map.load("data/map");
+    map.load("assets/map");
     PreviewRender preview_renderer(map);
 
     Renderer renderer;
@@ -231,7 +230,6 @@ int main()
                 }
             }
         }
-
 
         // Enabling input when rendering per-line can cause issues
         if (render_style == RenderStyle::Normal)

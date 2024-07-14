@@ -2,7 +2,7 @@
 
 Minimal colour raycaster.
 
-Edoit the
+Edit the map the asserts/ folder and re-load to see results.
 
  
 
