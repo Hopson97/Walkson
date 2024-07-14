@@ -60,6 +60,7 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera
                               (pos.y * PREVIEW_TILE_SIZE) + (dir.y - plane.y) * 10};
         render_target.draw(m_line.data(), m_line.size(), sf::PrimitiveType::Lines);
     }
+    set_line_colour(sf::Color::Red);
 
     {
         m_line[1].position = {(pos.x * PREVIEW_TILE_SIZE) + (dir.x + plane.x) * 10,

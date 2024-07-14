@@ -54,12 +54,4 @@ namespace Maths
 
         return sf::Vector2<T>{nx, ny};
     }
-
-    // Swap a vector x,y coords
-    template <typename T>
-    sf::Vector2<T> flip_vector(const sf::Vector2<T>& vect)
-    {
-        return {vect.y, vect.x};
-    }
-
 } // namespace Maths

@@ -11,6 +11,7 @@ struct Map
     std::vector<Tile> m_grid;
     sf::Vector2i size;
     sf::Vector2i start;
+    sf::Vector2i testing_location;
 
     bool load(const char* path);
 

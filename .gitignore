@@ -22,4 +22,4 @@ Release/
 *.srctrldb
 *.srctrlbm
 
-stats.csv
+old.cpp

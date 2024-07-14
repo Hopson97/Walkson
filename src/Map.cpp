@@ -34,6 +34,11 @@ bool Map::load(const char* path)
                 start = {x, size.y};
                 m_grid.push_back('.');
             }
+            else if (c == 'W')
+            {
+                testing_location = {x, size.y};
+                m_grid.push_back(c);
+            }
             else
             {
                 m_grid.push_back(c);

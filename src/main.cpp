@@ -11,122 +11,163 @@
 #include "Map.h"
 #include "MapPreviewRenderer.h"
 #include "Maths.h"
+#include "Renderer.h"
 
-struct Renderer
+namespace
 {
-    std::vector<sf::Uint8> pixels;
-
-    sf::Texture texture;
-    sf::RectangleShape pixel_sprite;
-
-    sf::RectangleShape clear_sprite;
-
-    Renderer()
-        : pixels(WINDOW_WIDTH * WINDOW_HEIGHT * 4)
+    sf::Color operator/=(sf::Color& colour, int mod)
     {
-        texture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
-        pixel_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT});
-        clear_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT / 2});
+        colour.r /= mod;
+        colour.g /= mod;
+        colour.b /= mod;
+        return colour;
     }
 
-    void clear()
-    {
-        std::memset(pixels.data(), 0, pixels.size());
-    }
 
-    void set_pixel(int x, int y, sf::Color colour)
+    sf::Vector2f get_keyboard_input(const sf::Vector2f& direction)
     {
-        if (x < 0 || x >= WINDOW_WIDTH || y < 0 || y >= WINDOW_HEIGHT)
+        float SPEED = 0.1f;
+
+        sf::Vector2f movement;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
         {
-            return;
+            movement += direction * SPEED;
         }
-        sf::Uint8* ptr = &pixels.at((y * WINDOW_WIDTH + x) * 4);
-        ptr[0] = colour.r;
-        ptr[1] = colour.g;
-        ptr[2] = colour.b;
-        ptr[3] = 255;
-    }
-
-    void draw_vertical_line(int x, int y_start, int y_end, sf::Color colour)
-    {
-        for (int y = y_start; y < y_end; y++)
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
         {
-            set_pixel(x, y, colour);
+            movement -= direction * SPEED;
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        {
+            movement += Maths::perpendicular(direction) * SPEED;
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        {
+            movement += Maths::perpendicular(-direction) * SPEED;
+        }
+
+        return movement;
+    }
+
+    void do_raycast(int x, const Camera& camera, const sf::Vector2i& i_camera_pos, const Map& map, Renderer& renderer)
+    {
+        // Convert to device coords (so -1 left & bottom, and 1 top && right
+        float camera_x = 2 * x / (float)WINDOW_WIDTH - 1;
+
+        // The direction the ray is facing for this slice of the window
+        auto ray_direction = camera.direction + camera.plane * camera_x;
+
+        // Calculate the position of the player in the world
+        auto pos = i_camera_pos; //   *TILE_SIZE;
+
+        // Difference between one x/y side of the grid to the next x/y
+        sf::Vector2f delta_dist{std::fabs(1.0f / ray_direction.x),
+                                std::fabs(1.0f / ray_direction.y)};
+
+        int side = 0;
+
+        // Length of ray from cam postion to next x/y side
+        // Calculate the "quadrant" being faced
+        sf::Vector2f side_dist = {
+            (ray_direction.x < 0 ? (camera.position.x - pos.x)
+                                 : (pos.x + 1.0f - camera.position.x)),
+            (ray_direction.y < 0 ? (camera.position.y - pos.y)
+                                 : (pos.y + 1.0f - camera.position.y)),
+        };
+        side_dist.x *= delta_dist.x;
+        side_dist.y *= delta_dist.y;
+
+        // Current step direction
+        sf::Vector2i step = {
+            ray_direction.x < 0 ? -1 : 1,
+            ray_direction.y < 0 ? -1 : 1,
+        };
+
+        // Calculate step and initial sideDist
+
+        // DDA algorthim
+        bool hit_wall = false;
+        for (int i = 0; i < 100 && !hit_wall; i++)
+        {
+            // Jump to next x/y square
+            if (side_dist.x < side_dist.y)
+            {
+                side_dist.x += delta_dist.x;
+                pos.x += step.x;
+                side = 0;
+            }
+            else
+            {
+                side_dist.y += delta_dist.y;
+                pos.y += step.y;
+                side = 1;
+            }
+
+            if (map.get_tile(pos.x, pos.y) != '.' && map.get_tile(pos.x, pos.y) != ',')
+            {
+                hit_wall = true;
+            }
+        }
+
+        // Distance from the camera plane to the wall
+        float distance_to_wall =
+            side == 0 ? side_dist.x - delta_dist.x : side_dist.y - delta_dist.y;
+
+        // Calculate the height of the wall as a ratio of distance to window height
+        int wall_height = WINDOW_HEIGHT / distance_to_wall;
+        int start = WINDOW_HEIGHT / 2 - wall_height / 2;
+        int end = WINDOW_HEIGHT / 2 + wall_height / 2;
+        if (start < 0)
+            start = 0;
+        if (end >= WINDOW_HEIGHT)
+            end = WINDOW_HEIGHT - 1;
+
+        // R E N D E R I N G
+        // Wall
+        if (hit_wall)
+        {
+
+            auto tile = map.get_tile(pos.x, pos.y);
+            auto colour = tile_to_colour(tile);
+            colour.r = std::max(0, (int)colour.r - (int)distance_to_wall * 2);
+            colour.g = std::max(0, (int)colour.g - (int)distance_to_wall * 2);
+            colour.b = std::max(0, (int)colour.b - (int)distance_to_wall * 2);
+            if (side == 1)
+            {
+                colour /= 2;
+            }
+            renderer.draw_vertical_line(x, start, end, colour);
+
+            if (tile == '@')
+            {
+                start = end;
+                end = WINDOW_HEIGHT / 2 + wall_height;
+                colour /= 2;
+                renderer.draw_vertical_line(x, start, end, colour);
+            }
         }
     }
-
-    void render(sf::RenderTarget& target, bool inside)
-    {
-        float middle = WINDOW_HEIGHT / 2.0f;
-
-        sf::Color ground = inside ? FLOOR : sf::Color{100, 200, 80};
-        sf::Color sky = inside ? sf::Color{200, 200, 180} : sf::Color{50, 150, 230};
-
-        // Draw the "sky"
-        clear_sprite.setPosition({0, middle});
-        clear_sprite.setFillColor(sky);
-        target.draw(clear_sprite);
-
-        // Draw the ground
-        clear_sprite.setPosition({0, 0});
-        clear_sprite.setFillColor(ground);
-        target.draw(clear_sprite);
-
-        // Draw the pixels ontop
-        pixel_sprite.setTexture(&texture);
-        texture.update(pixels.data());
-        target.draw(pixel_sprite);
-
-        clear_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT / 2});
-    }
-};
-
-sf::Color operator/=(sf::Color& colour, int mod)
-{
-    colour.r /= mod;
-    colour.g /= mod;
-    colour.b /= mod;
-    return colour;
 }
 
-auto gen_texture()
-{
-    sf::Image image;
-    image.create(64, 64);
-
-    for (int y = 0; y < 64; y++)
-    {
-        for (int x = 0; x < 64; x++)
-        {
-            sf::Color c;
-            c.r = y + x;
-            c.g = y / (x + 1);
-            c.g = (x ^ y) * 3;
-            image.setPixel(x, y, c);
-        }
-    }
-
-    return image;
-}
 
 int main()
 {
-    sf::RenderWindow window({1280, 720}, "WalksoN", sf::Style::Default);
+    sf::RenderWindow window({WINDOW_WIDTH * 3, WINDOW_HEIGHT * 3}, "Walkson - Press L to unlock mouse - Press ESC to exit",
+                            sf::Style::Default);
     window.setVerticalSyncEnabled(true);
     window.setMouseCursorVisible(false);
 
-    window.setPosition({1960 - 1280, 0});
+    window.setPosition({1960 - (int)(window.getSize().x * 1.1), 0});
 
     sf::RenderTexture renderTexture;
     renderTexture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    sf::RectangleShape framebuffer({WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2});
+    sf::RectangleShape framebuffer({
+        (float)window.getSize().x,
+        (float)window.getSize().y,
+    });
+    // sf::RectangleShape framebuffer({WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2});
 
-    auto texture = gen_texture();
-    sf::RectangleShape test_texture_test(Maths::cast_vector<float>(texture.getSize()));
-    sf::Texture sftex;
-    sftex.loadFromImage(texture);
-    test_texture_test.setTexture(&sftex);
 
     Map map;
     map.load("data/map");
@@ -139,10 +180,11 @@ int main()
     camera.direction = {1, 0};
 
     // The plane is perpendicular to the camera's direction vector
-    camera.plane = sf::Vector2f{camera.direction.y, camera.direction.x};
-
+    camera.plane = Maths::perpendicular(camera.direction);
+    bool mouse_enabled = true;
     while (window.isOpen())
     {
+        window.setMouseCursorVisible(!mouse_enabled);
         sf::Event e;
 
         while (window.pollEvent(e))
@@ -158,28 +200,18 @@ int main()
                 {
                     window.close();
                 }
+
+                else if (key == sf::Keyboard::L)
+                {
+                    mouse_enabled = !mouse_enabled;
+                }
             }
         }
 
-        float SPEED = 0.2f;
-        sf::Vector2f movement;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-        {
-            movement += camera.direction * SPEED;
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-        {
-            movement -= camera.direction * SPEED;
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-        {
-            movement += Maths::perpendicular(camera.direction) * SPEED;
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-        {
-            movement += Maths::perpendicular(-camera.direction) * SPEED;
-        }
-
+        //  ---------------------
+        //      Keyboard input
+        //  ---------------------
+        auto movement = get_keyboard_input(camera.direction);
         auto next = camera.position + movement;
         auto next_tile = map.get_tile(next.x, next.y);
 
@@ -197,130 +229,47 @@ int main()
         }
         camera.position += movement;
 
-        // If the player is touching a "door", then warp them to other side
-        auto i_camera_pos = Maths::cast_vector<int>(camera.position);
-        auto tile = map.get_tile(i_camera_pos.x, i_camera_pos.y);
+        //  ---------------------
+        //      Mouse input
+        //  ---------------------
+        if (mouse_enabled)
+        {
 
-        static auto last_mouse_pos = sf::Mouse::getPosition().x;
-        auto this_frame_mouse_pos = sf::Mouse::getPosition().x;
+            static auto last_mouse_pos = sf::Mouse::getPosition().x;
+            auto this_frame_mouse_pos = sf::Mouse::getPosition().x;
 
-        float diff = (this_frame_mouse_pos - last_mouse_pos) / 4.0f;
-        camera.direction = Maths::rotate(camera.direction, diff);
-        camera.plane = Maths::perpendicular(-camera.direction);
-        sf::Mouse::setPosition({(int)window.getSize().x / 2, (int)window.getSize().y / 2},
-                               window);
-        last_mouse_pos = sf::Mouse::getPosition().x;
+            float diff = (this_frame_mouse_pos - last_mouse_pos) / 4.0f;
+            camera.direction = Maths::rotate(camera.direction, diff);
+            camera.plane = Maths::perpendicular(-camera.direction);
+            sf::Mouse::setPosition(
+                {(int)window.getSize().x / 2, (int)window.getSize().y / 2}, window);
+            last_mouse_pos = sf::Mouse::getPosition().x;
+        }
 
+        //  ---------------------
+        //      Pre-Render
+        //  ---------------------
         window.clear();
         renderTexture.clear();
         renderer.clear();
 
-        // Do the rendering
+        //  ---------------------
+        //      Rendering
+        //  ---------------------
+        auto i_camera_pos = Maths::cast_vector<int>(camera.position);
+        auto tile = map.get_tile(i_camera_pos.x, i_camera_pos.y);
         for (int x = 0; x < WINDOW_WIDTH; x++)
         {
-            // Convert to device coords (so -1 left & bottom, and 1 top && right
-            float camera_x = 2 * x / (float)WINDOW_WIDTH - 1;
-
-            // The direction the ray is facing for this slice of the window
-            auto ray_direction = camera.direction + camera.plane * camera_x;
-
-            // Calculate the position of the player in the world
-            auto pos = i_camera_pos; //   *TILE_SIZE;
-
-            // Difference between one x/y side of the grid to the next x/y
-            sf::Vector2f delta_dist{std::fabs(1.0f / ray_direction.x),
-                                    std::fabs(1.0f / ray_direction.y)};
-
-            int side = 0;
-
-            // Length of ray from cam postion to next x/y side
-            // Calculate the "quadrant" being faced
-            sf::Vector2f side_dist = {
-                (ray_direction.x < 0 ? (camera.position.x - pos.x)
-                                     : (pos.x + 1.0f - camera.position.x)),
-                (ray_direction.y < 0 ? (camera.position.y - pos.y)
-                                     : (pos.y + 1.0f - camera.position.y)),
-            };
-            side_dist.x *= delta_dist.x;
-            side_dist.y *= delta_dist.y;
-
-            // Current step direction
-            sf::Vector2i step = {
-                ray_direction.x < 0 ? -1 : 1,
-                ray_direction.y < 0 ? -1 : 1,
-            };
-
-            // Calculate step and initial sideDist
-
-            // DDA algorthim
-            bool hit_wall = false;
-            for (int i = 0; i < 100 && !hit_wall; i++)
-            {
-                // Jump to next x/y square
-                if (side_dist.x < side_dist.y)
-                {
-                    side_dist.x += delta_dist.x;
-                    pos.x += step.x;
-                    side = 0;
-                }
-                else
-                {
-                    side_dist.y += delta_dist.y;
-                    pos.y += step.y;
-                    side = 1;
-                }
-
-                if (map.get_tile(pos.x, pos.y) != '.' &&
-                    map.get_tile(pos.x, pos.y) != ',')
-                {
-                    hit_wall = true;
-                }
-            }
-
-            // Distance from the camera plane to the wall
-            float distance_to_wall =
-                side == 0 ? side_dist.x - delta_dist.x : side_dist.y - delta_dist.y;
-
-            // Calculate the height of the wall
-            int wall_height = WINDOW_HEIGHT / distance_to_wall;
-            int start = WINDOW_HEIGHT / 2 - wall_height / 2;
-            int end = WINDOW_HEIGHT / 2 + wall_height / 2;
-            if (start < 0)
-                start = 0;
-            if (end >= WINDOW_HEIGHT)
-                end = WINDOW_HEIGHT - 1;
-
-            // R E N D E R I N G
-            // Wall
-            if (hit_wall)
-            {
-
-                auto tile = map.get_tile(pos.x, pos.y);
-                auto colour = tile_to_colour(tile);
-                if (side == 1)
-                {
-                    colour /= 2;
-                }
-                renderer.draw_vertical_line(x, start, end, colour);
-
-                if (tile == '@')
-                {
-                    start = end;
-                    end = WINDOW_HEIGHT / 2 + wall_height;
-                    colour /= 2;
-                    renderer.draw_vertical_line(x, start, end, colour);
-                }
-            }
+            do_raycast(x, camera, i_camera_pos, map, renderer);
         }
 
         renderer.render(renderTexture, tile == ',');
         framebuffer.setTexture(&renderTexture.getTexture());
         window.draw(framebuffer);
 
-        window.draw(test_texture_test);
-
         preview_renderer.render_preview(window, camera);
 
         window.display();
     }
 }
+
