@@ -18,8 +18,7 @@ struct Tile
 };
 
 const Tile WALL = {.colour = {100, 100, 100, 128}, .height = 1.0f};
-const Tile DOOR = {
-    .colour = {255, 165, 0, 128}, .height = 0.9f};
+const Tile DOOR = {.colour = {255, 165, 0, 128}, .height = 0.9f};
 
 const Tile GRASS = {.colour = {50, 50, 50, 128}, .height = 1.0f};
 const Tile FLOOR = {.colour = {200, 150, 150, 128}, .height = 1.0f};
@@ -48,6 +47,6 @@ inline const Tile& get_tile_info(char t)
         case 'B':
             return CASTLE_B;
     }
-
-    return {sf::Color::Magenta, 1.0f};
+    static Tile error{sf::Color::Magenta, 1.0f};
+    return error;
 }

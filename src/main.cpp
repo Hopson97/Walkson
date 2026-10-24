@@ -28,19 +28,19 @@ namespace
         float SPEED = 0.1f;
 
         sf::Vector2f movement;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
         {
             movement += direction * SPEED;
         }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
         {
             movement -= direction * SPEED;
         }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
         {
             movement += Maths::perpendicular(direction) * SPEED;
         }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
         {
             movement += Maths::perpendicular(-direction) * SPEED;
         }
@@ -159,7 +159,7 @@ enum class RenderStyle
 
 int main()
 {
-    sf::RenderWindow window({WINDOW_WIDTH * 3, WINDOW_HEIGHT * 3},
+    sf::RenderWindow window(sf::VideoMode{{WINDOW_WIDTH * 3, WINDOW_HEIGHT * 3}},
                             "Walkson - Press L to unlock mouse - Press ESC to exit",
                             sf::Style::Default);
     window.setVerticalSyncEnabled(true);
@@ -167,8 +167,7 @@ int main()
 
     window.setPosition({1960 - (int)(window.getSize().x * 1.1), 0});
 
-    sf::RenderTexture render_texture;
-    render_texture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
+    sf::RenderTexture render_texture({WINDOW_WIDTH, WINDOW_HEIGHT});
 
     sf::RectangleShape framebuffer({
         (float)window.getSize().x,
@@ -201,28 +200,26 @@ int main()
     while (window.isOpen())
     {
         window.setMouseCursorVisible(!mouse_enabled);
-        sf::Event e;
 
-        while (window.pollEvent(e))
+
+        while (auto event = window.pollEvent())
         {
-            if (e.type == sf::Event::Closed)
+            if (event->is<sf::Event::Closed>())
             {
                 window.close();
             }
-            else if (e.type == sf::Event::KeyPressed)
+            else if (auto key = event->getIf<sf::Event::KeyPressed>())
             {
-                auto key = e.key.code;
-                if (key == sf::Keyboard::Escape)
+                if (key->code == sf::Keyboard::Key::Escape)
                 {
                     window.close();
                 }
-
-                else if (key == sf::Keyboard::L)
+                else if (key->code == sf::Keyboard::Key::L)
                 {
                     mouse_enabled = !mouse_enabled;
                 }
 
-                else if (key == sf::Keyboard::Q)
+                else if (key->code == sf::Keyboard::Key::Q)
                 {
                     clear_all();
                     render_style = RenderStyle::PerLine;

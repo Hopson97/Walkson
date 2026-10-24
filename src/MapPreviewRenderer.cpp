@@ -13,20 +13,31 @@ PreviewRender::PreviewRender(const Map& map)
     : mp_map(&map)
 {
     auto T_SIZE = PREVIEW_TILE_SIZE;
+
     for (int y = 0; y < mp_map->size.y; y++)
     {
         for (int x = 0; x < mp_map->size.x; x++)
         {
-            sf::Vertex quad[4];
-            quad[0].position = {x * T_SIZE, y * T_SIZE};
-            quad[1].position = {x * T_SIZE, y * T_SIZE + T_SIZE};
-            quad[2].position = {x * T_SIZE + T_SIZE, y * T_SIZE + T_SIZE};
-            quad[3].position = {x * T_SIZE + T_SIZE, y * T_SIZE};
+            sf::Vertex quad[6];
 
-            for (int i = 0; i < 4; i++)
+            auto topLeft = sf::Vector2f{x * T_SIZE, y * T_SIZE};
+            auto bottomLeft = sf::Vector2f{x * T_SIZE, y * T_SIZE + T_SIZE};
+            auto bottomRight = sf::Vector2f{x * T_SIZE + T_SIZE, y * T_SIZE + T_SIZE};
+            auto topRight = sf::Vector2f{x * T_SIZE + T_SIZE, y * T_SIZE};
+
+            quad[0].position = topLeft;
+            quad[1].position = bottomLeft;
+            quad[2].position = bottomRight;
+            quad[3].position = topLeft;
+            quad[4].position = bottomRight;
+            quad[5].position = topRight;
+
+            auto colour = get_tile_info(mp_map->get_tile(x, y)).colour;
+
+            for (auto& vertex : quad)
             {
-                quad[i].color = get_tile_info(mp_map->get_tile(x, y)).colour;
-                m_tiles.push_back(quad[i]);
+                vertex.color = colour;
+                m_tiles.push_back(vertex);
             }
         }
     }
@@ -37,7 +48,7 @@ void PreviewRender::render_preview(sf::RenderTarget& render_target, const Camera
     assert(mp_map);
 
     // Draw the tile map
-    render_target.draw(m_tiles.data(), m_tiles.size(), sf::PrimitiveType::Quads);
+    render_target.draw(m_tiles.data(), m_tiles.size(), sf::PrimitiveType::Triangles);
 
     // Draw the player "forward" line
     auto& pos = camera.position;

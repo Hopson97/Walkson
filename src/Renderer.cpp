@@ -6,8 +6,8 @@
 
 Renderer::Renderer()
     : pixels(WINDOW_WIDTH * WINDOW_HEIGHT * 4)
+    , texture(sf::Vector2u{WINDOW_WIDTH, WINDOW_HEIGHT})
 {
-    texture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
     pixel_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT});
     clear_sprite.setSize({WINDOW_WIDTH, WINDOW_HEIGHT / 2});
 }
@@ -23,7 +23,7 @@ void Renderer::set_pixel(int x, int y, sf::Color colour)
     {
         return;
     }
-    sf::Uint8* ptr = &pixels.at((y * WINDOW_WIDTH + x) * 4);
+    uint8_t* ptr = &pixels.at((y * WINDOW_WIDTH + x) * 4);
     ptr[0] = colour.r;
     ptr[1] = colour.g;
     ptr[2] = colour.b;

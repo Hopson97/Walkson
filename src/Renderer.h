@@ -7,7 +7,7 @@
 
 struct Renderer
 {
-    std::vector<sf::Uint8> pixels;
+    std::vector<uint8_t> pixels;
 
     sf::Texture texture;
     sf::RectangleShape pixel_sprite;
