@@ -2,9 +2,9 @@
 
 Minimal colour raycaster.
 
-Edit the map the asserts/ folder and re-load to see results.
+Edit the map in the the `asserts/` folder and re-load to see results.
 
- 
+![Screenshot](assets/screenshot.png)
 
 ## Building and Running
 
